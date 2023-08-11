@@ -34,6 +34,8 @@ I wish to express my profound gratitude to Turan Berkant for his invaluable supe
 - scikit-learn
 - wandb (Weights & Biases)
 
+### Setup
+N/A (will update later)
 
 ## Model Architecture
 The underlying architecture is predicated on the ResNet-18 model. It has been tailored to facilitate binary classification, with a primary focus on identifying a specific target digit within the customised SVHN dataset.
