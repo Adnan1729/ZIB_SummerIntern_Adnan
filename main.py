@@ -33,7 +33,7 @@ import wandb
 class SVHNDataset(Dataset):
     def __init__(
         self,
-        file_path: str = "/mnt/c/Users/adnan/OneDrive/Documents/SVHNDataset",
+        file_path: str = "/home/htc/amahmud/ZIB_SummerIntern_Adnan",
         split: str = "train",
         target_digit: int = 1,
         transform: Optional[Callable] = transforms.Compose([transforms.Resize((64, 64)), transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
@@ -268,7 +268,7 @@ class SVHNDataset(Dataset):
         return "".join([chr(v[0]) for v in self.hdf5_data[name_ref]])  # type: ignore
 
     def _get_image(self, img_name):
-        full_path = f"/mnt/c/Users/adnan/OneDrive/Documents/SVHNDataset/{self.split}/{img_name}"
+        full_path = f"/home/htc/amahmud/ZIB_SummerIntern_Adnan/{self.split}/{img_name}"
         if self.use_grayscale is True:
             img = Image.open(full_path).convert("L")
         else:
@@ -297,10 +297,10 @@ class SVHNDataset(Dataset):
 
 # General configurations
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-EPOCHS = 10
+EPOCHS = 50
 
 # Dataset configurations
-FILE_PATH = "/mnt/c/Users/adnan/OneDrive/Documents/SVHNDataset"
+FILE_PATH = "/home/htc/amahmud/ZIB_SummerIntern_Adnan"
 TRAIN_SPLIT = "train"
 TEST_SPLIT = "test"
 TARGET_DIGIT = 1
@@ -311,7 +311,7 @@ TRANSFORM = transforms.Compose([
 ])
 TARGET_TRANSFORM = None
 BALANCE = True
-MAX_SAMPLES = 100
+MAX_SAMPLES = None
 ONE_VS_TWO = None
 USE_GRAYSCALE = None
 BATCH_SIZE = 32
@@ -374,6 +374,10 @@ def setup_model():
 # TRAINING LOOP
 # =========================
 
+MODEL_SAVE_PATH = "/home/htc/amahmud/ZIB_SummerIntern_Adnan/model"
+if not os.path.exists(MODEL_SAVE_PATH):
+    os.makedirs(MODEL_SAVE_PATH)
+
 def train_model(model, train_loader, optimizer, criterion, num_epochs):
     train_losses = []
     train_accuracies = []
@@ -420,6 +424,12 @@ def train_model(model, train_loader, optimizer, criterion, num_epochs):
             "Test Loss": test_loss,
             "Test Accuracy": test_accuracy
         }, step=epoch)
+
+        # Model checkpointing
+        if (epoch + 1) % 10 == 0:  # +1 because epoch starts from 0
+            checkpoint_path = os.path.join(MODEL_SAVE_PATH, f"model_epoch_{epoch+1}.pth")
+            torch.save(model.state_dict(), checkpoint_path)
+            print(f"Saved model checkpoint to {checkpoint_path}")
 
     return train_losses, train_accuracies, test_losses, test_accuracies
 
@@ -479,7 +489,7 @@ def visualize_results(epochs, train_losses, train_accuracies, test_losses, test_
     ax2.legend(loc='upper right')  # Adding a legend to ax2
 
     plt.tight_layout()
-    plt.savefig('/mnt/c/Users/adnan/OneDrive/Documents/SVHNDataset/Resnet-18_results.png')
+    plt.savefig('/home/htc/amahmud/ZIB_SummerIntern_Adnan/Resnet-18_results.png')
 
     # Logging results to wandb
     for epoch, tr_loss, tr_acc, te_loss, te_acc in zip(epochs, train_losses, train_accuracies, test_losses, test_accuracies):
@@ -538,6 +548,3 @@ visualize_results(range(1, EPOCHS+1), train_losses, train_accuracies, test_losse
 
 # Finish the wandb run
 wandb.finish()
-
-
-
