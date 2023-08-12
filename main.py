@@ -297,7 +297,7 @@ class SVHNDataset(Dataset):
 
 # General configurations
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-EPOCHS = 50
+EPOCHS = 100
 
 # Dataset configurations
 FILE_PATH = "/home/htc/amahmud/ZIB_SummerIntern_Adnan"
