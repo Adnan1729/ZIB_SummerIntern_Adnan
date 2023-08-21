@@ -12,7 +12,7 @@ This repository encompasses a sophisticated neural network designed for the clas
 - [Usage](#usage)
 - [Results & Visualization](#results--visualization)
 - [Weights & Biases Integration](#weights--biases-integration)
-- [Existing Tools] (#Existing-Tools)
+- [Existing Tools](#Existing-Tools)
 
 ## Introduction
 I am a summer intern at Zuse Institute Berlin (ZIB), aiming to learn about the domain of Explainable AI.
@@ -51,7 +51,7 @@ Upon the culmination of the training process, a graphical representation will be
 ## Weights & Biases Integration
 The framework has been integrated with Weights & Biases for meticulous experiment tracking. It is imperative to have an active Weights & Biases account and a designated project to effectively log and monitor the experiments.
 
-# Existing Tools
+## Existing Tools
 
 ## Key Parameters of Existing Explainable Tools
 
