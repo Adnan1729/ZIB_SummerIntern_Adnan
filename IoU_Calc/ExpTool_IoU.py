@@ -1,4 +1,3 @@
-# I am yet to add the swiping features
 import argparse
 import os
 import torch
@@ -12,7 +11,8 @@ from torch.utils.data import Dataset
 from torchvision.utils import save_image, make_grid
 from typing import Optional, Callable
 from captum.attr import LRP, KernelShap, Lime, ShapleyValueSampling, FeaturePermutation, Occlusion, FeatureAblation, Deconvolution, GuidedGradCam, GuidedBackprop, InputXGradient, GradientShap, DeepLiftShap, DeepLift, Saliency, IntegratedGradients
-from dataset_IoU import SVHNDataset
+from dataset_custom_01 import SVHNDataset
+
 # =========================
 # Constants
 # =========================
@@ -38,7 +38,7 @@ BATCH_SIZE = 1
 # Custom Dataset
 # =========================
 
-# Being imported from dataset_custom.py
+# Being imported from dataset_custom_01.py
     
 # =========================
 # Model Loading
@@ -58,55 +58,81 @@ def load_model(model_path: str):
 # Attribution Function
 # =========================
 
-def get_lrp_attributions(model, data_loader):
-    lrp = LRP(model)
-    
+# Parametrised
+
+def get_lrp_attributions(model, data_loader, rule="Z"):
+    lrp = LRP(model, rule=rule)
     inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
     inputs = inputs.to(device)
-    labels = labels.to(device)
-    
     attributions = lrp.attribute(inputs, target=labels)
-    
     return inputs, attributions, bounding_boxes
 
-
-def get_kernelshap_attributions(model, data_loader):
+def get_kernelshap_attributions(model, data_loader, n_samples=200, baselines=None):
     kernel_shap = KernelShap(model)
-    
     inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
     inputs = inputs.to(device)
-    labels = labels.to(device)
-    
-    baselines = torch.zeros(*inputs.shape).to(device)
-    
-    attributions = kernel_shap.attribute(inputs, baselines, target=labels, n_samples=200)
-    
+    if baselines is None:
+        baselines = torch.zeros(*inputs.shape).to(device)
+    attributions = kernel_shap.attribute(inputs, baselines, target=labels, n_samples=n_samples)
     return inputs, attributions, bounding_boxes
 
-
-def get_lime_attributions(model, data_loader):
+def get_lime_attributions(model, data_loader, n_samples=125, perturbations_per_eval=10):
     lime = Lime(model)
-    
     inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
     inputs = inputs.to(device)
-    labels = labels.to(device)
-    
-    attributions = lime.attribute(inputs, target=labels, n_samples=125, perturbations_per_eval=10)
-    
+    attributions = lime.attribute(inputs, target=labels, n_samples=n_samples, perturbations_per_eval=perturbations_per_eval)
     return inputs, attributions, bounding_boxes
 
-
-def get_shapley_value_attributions(model, data_loader):
+def get_shapley_value_attributions(model, data_loader, n_samples=25):
     shapley = ShapleyValueSampling(model)
-    
     inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
     inputs = inputs.to(device)
-    labels = labels.to(device)
-    
-    attributions = shapley.attribute(inputs, target=labels, n_samples=25, perturbations_per_eval=5)
-    
+    attributions = shapley.attribute(inputs, target=labels, n_samples=n_samples)
     return inputs, attributions, bounding_boxes
 
+def get_occlusion_attributions(model, data_loader, sliding_window_shapes=(3, 15, 15), strides=(3, 8, 8)):
+    occlusion = Occlusion(model)
+    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
+    inputs = inputs.to(device)
+    attributions = occlusion.attribute(inputs, strides=strides, target=labels, sliding_window_shapes=sliding_window_shapes)
+    return inputs, attributions, bounding_boxes
+
+def get_gradientshap_attributions(model, data_loader, baselines=None, n_samples=5):
+    gradient_shap = GradientShap(model)
+    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
+    inputs = inputs.to(device)
+    if baselines is None:
+        baselines = torch.randn(n_samples, 3, 128, 128).to(device)
+    attributions = gradient_shap.attribute(inputs, baselines=baselines, target=labels)
+    return inputs, attributions, bounding_boxes
+
+def get_deepliftshap_attributions(model, data_loader, baseline=None):
+    dl_shap = DeepLiftShap(model)
+    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
+    inputs = inputs.to(device)
+    if baseline is None:
+        baseline = torch.zeros_like(inputs)
+    attributions = dl_shap.attribute(inputs, baselines=baseline, target=labels)
+    return inputs, attributions, bounding_boxes
+
+
+def get_deeplift_attributions(model, data_loader, baseline=None):
+    dl = DeepLift(model)
+    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
+    inputs = inputs.to(device)
+    if baseline is None:
+        baseline = torch.zeros_like(inputs)
+    attributions = dl.attribute(inputs, baselines=baseline, target=labels)
+    return inputs, attributions, bounding_boxes
+
+def get_IntegratedGradients_attributions(model, data_loader, n_steps=200):
+    integrated_gradients = IntegratedGradients(model)
+    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
+    inputs = inputs.to(device)
+    attributions = integrated_gradients.attribute(inputs, target=labels, n_steps=n_steps)
+    return inputs, attributions, bounding_boxes
+
+# Not Parametrised
 
 def get_feature_permutation_attributions(model, data_loader):
     feature_permutation = FeaturePermutation(model)
@@ -119,23 +145,6 @@ def get_feature_permutation_attributions(model, data_loader):
     
     return inputs, attributions, bounding_boxes
 
-
-def get_occlusion_attributions(model, data_loader):
-    occlusion = Occlusion(model)
-    
-    # The size of the sliding window used to occlude parts of the input. Needs to be adjust this based on specific use case.
-    sliding_window_shapes = (3, 15, 15)
-    
-    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
-    inputs = inputs.to(device)
-    labels = labels.to(device)
-    
-    attributions = occlusion.attribute(inputs, strides = (3, 8, 8),
-                                       target=labels, sliding_window_shapes=sliding_window_shapes)
-    
-    return inputs, attributions, bounding_boxes
-
-
 def get_feature_ablation_attributions(model, data_loader):
     feature_ablation = FeatureAblation(model)
     inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
@@ -145,7 +154,6 @@ def get_feature_ablation_attributions(model, data_loader):
     attributions = feature_ablation.attribute(inputs, target=labels)
     
     return inputs, attributions, bounding_boxes
-
 
 def get_deconvolution_attributions(model, data_loader):
     deconv = Deconvolution(model)
@@ -171,7 +179,6 @@ def get_guidedgradcam_attributions(model, data_loader):
     
     return inputs, attributions, bounding_boxes
 
-
 def get_guidedbackprop_attributions(model, data_loader):
     guided_backprop = GuidedBackprop(model)
     inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
@@ -181,7 +188,6 @@ def get_guidedbackprop_attributions(model, data_loader):
     attributions = guided_backprop.attribute(inputs, target=labels)
     
     return inputs, attributions, bounding_boxes
-
 
 def get_inputxgradient_attributions(model, data_loader):
     input_x_gradient = InputXGradient(model)
@@ -193,37 +199,6 @@ def get_inputxgradient_attributions(model, data_loader):
     
     return inputs, attributions, bounding_boxes
 
-
-def get_gradientshap_attributions(model, data_loader):
-    gradient_shap = GradientShap(model)
-    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
-    inputs = inputs.to(device)
-    labels = labels.to(device)
-    
-    # Choosing baselines randomly
-    baselines = torch.randn(20, 3, 128, 128).to(device)  # Adjusted the dimensions to 128x128 as per your transformation
-    attributions = gradient_shap.attribute(inputs, baselines=baselines, target=labels)
-    
-    return inputs, attributions, bounding_boxes
-
-
-def get_deepliftshap_attributions(model, data_loader):
-    dl_shap = DeepLiftShap(model)
-    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
-    inputs = inputs.to(device)
-    baselines = torch.zeros((10,) + inputs.shape[1:]).to(device)  # 10 baselines for DeepLiftShap
-    attributions = dl_shap.attribute(inputs, baselines=baselines, target=labels)
-    return inputs, attributions, bounding_boxes
-
-
-def get_deeplift_attributions(model, data_loader):
-    dl = DeepLift(model)
-    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
-    inputs = inputs.to(device)
-    attributions = dl.attribute(inputs, target=labels)
-    return inputs, attributions, bounding_boxes
-
-
 def get_saliency_attributions(model, data_loader):
     saliency = Saliency(model)
     inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
@@ -231,17 +206,8 @@ def get_saliency_attributions(model, data_loader):
     attributions = saliency.attribute(inputs, target=labels)
     return inputs, attributions, bounding_boxes
 
-
-def get_IntegratedGradients_attributions(model, data_loader):
-    integrated_gradients = IntegratedGradients(model)
-    inputs, labels, bounding_boxes, _, _, _, _, _, _ = next(iter(data_loader))
-    inputs = inputs.to(device)
-    attributions = integrated_gradients.attribute(inputs, target=labels, n_steps=100)
-    return inputs, attributions, bounding_boxes
-
-
 # =========================
-# IoU Calc
+# IoU Calc 
 # =========================
 
 def threshold_heatmap(heatmap: torch.Tensor, k: int) -> torch.Tensor:
@@ -293,8 +259,6 @@ def save_attributions(inputs, attributions, save_dir, method_name):
         concatenated_images = make_grid([original_img, method_map], nrow=2)
         save_image(concatenated_images, os.path.join(save_dir, f"{method_name.lower()}_{i}.png"))
 
-
-
 # =========================
 # Parsing
 # =========================
@@ -302,6 +266,41 @@ def save_attributions(inputs, attributions, save_dir, method_name):
 def parse_args():
     parser = argparse.ArgumentParser(description="Explainability Methods for Custom SVHN dataset")
     parser.add_argument("--method", type=str, required=True, choices=["LRP", "KernelShap", "Lime", "ShapleyValueSampling", "FeaturePermutation", "Occlusion", "FeatureAblation", "Deconvolution", "GuidedGradCam", "GuidedBackprop", "InputXGradient", "GradientShap", "DeepLiftShap", "DeepLift", "Saliency", "IntegratedGradients"], help="Which explainability method to run.")
+    
+    # IntegratedGradients
+    parser.add_argument("--ig_n_steps", type=int, default=200, help="Number of steps for Integrated Gradients.")
+    
+    # DeepLift
+    parser.add_argument("--dl_baseline", type=float, default=0.0, help="Baseline for DeepLift.")
+    
+    # DeepLiftShap
+    parser.add_argument("--dls_baseline", type=float, default=0.0, help="Baseline for DeepLiftShap.")
+    
+    # GradientShap
+    parser.add_argument("--gs_n_samples", type=int, default=20, help="Number of random samples per input for GradientShap.")
+    parser.add_argument("--gs_baselines", type=float, default=0.0, help="Randomly sampled reference inputs for GradientShap.")
+    
+    # GuidedGradCam
+    parser.add_argument("--ggc_layer", type=str, default="layer4[-1]", help="Specific layer for GuidedGradCAM.")
+    
+    # Occlusion
+    parser.add_argument("--occ_sliding_window_shapes", type=int, nargs=3, default=[3, 15, 15], help="Size of the sliding window for Occlusion.")
+    parser.add_argument("--occ_strides", type=int, nargs=3, default=[3, 8, 8], help="Stride values for the sliding window for Occlusion.")
+    
+    # ShapleyValueSampling
+    parser.add_argument("--shapley_n_samples", type=int, default=25, help="Number of samples for Shapley Value Sampling.")
+    
+    # Lime
+    parser.add_argument("--lime_n_samples", type=int, default=125, help="Number of samples for Lime.")
+    parser.add_argument("--lime_ppe", type=int, default=10, help="Perturbations per evaluation for Lime.")
+    
+    # KernelShap
+    parser.add_argument("--kernelshap_n_samples", type=int, default=200, help="Number of samples for KernelShap.")
+    parser.add_argument("--kernelshap_baselines", type=float, default=0.0, help="Baseline samples for KernelShap.")
+    
+    # LRP
+    parser.add_argument("--lrp_rule", type=str, default="Z", choices=["Z", "Z^+"], help="Propagation rule for LRP.")
+    
     return parser.parse_args()
 
 # =========================
@@ -318,28 +317,28 @@ if __name__ == "__main__":
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     method_to_function = {
-        "LRP": get_lrp_attributions,
-        "KernelShap": get_kernelshap_attributions,
-        "Lime": get_lime_attributions,
-        "ShapleyValueSampling": get_shapley_value_attributions,
+        "LRP": lambda: get_lrp_attributions(model, data_loader, rule=args.lrp_rule),
+        "KernelShap": lambda: get_kernelshap_attributions(model, data_loader, n_samples=args.kernelshap_n_samples, baselines=args.kernelshap_baselines),
+        "Lime": lambda: get_lime_attributions(model, data_loader, n_samples=args.lime_n_samples, perturbations_per_eval=args.lime_ppe),
+        "ShapleyValueSampling": lambda: get_shapley_value_attributions(model, data_loader, n_samples=args.shapley_n_samples),
         "FeaturePermutation": get_feature_permutation_attributions,
-        "Occlusion": get_occlusion_attributions,
+        "Occlusion": lambda: get_occlusion_attributions(model, data_loader, sliding_window_shapes=args.occ_sliding_window_shapes, strides=args.occ_strides),
         "FeatureAblation": get_feature_ablation_attributions,
         "Deconvolution": get_deconvolution_attributions,
-        "GuidedGradCam": get_guidedgradcam_attributions,
+        "GuidedGradCam": lambda: get_guidedgradcam_attributions(model, data_loader, layer=args.ggc_layer),
         "GuidedBackprop": get_guidedbackprop_attributions,
         "InputXGradient": get_inputxgradient_attributions,
-        "GradientShap": get_gradientshap_attributions,
-        "DeepLiftShap": get_deepliftshap_attributions,
-        "DeepLift": get_deeplift_attributions,
+        "GradientShap": lambda: get_gradientshap_attributions(model, data_loader, n_samples=args.gs_n_samples, baselines=args.gs_baselines),
+        "DeepLift": lambda: get_deeplift_attributions(model, data_loader, baseline=args.dl_baseline),
+        "DeepLiftShap": lambda: get_deepliftshap_attributions(model, data_loader, baseline=args.dls_baseline),
         "Saliency": get_saliency_attributions,
-        "IntegratedGradients": get_IntegratedGradients_attributions
+        "IntegratedGradients": lambda: get_IntegratedGradients_attributions(model, data_loader, n_steps=args.ig_n_steps),
     }
 
-    inputs, attributions, bounding_boxes = method_to_function[args.method](model, data_loader)  
+    inputs, attributions, bounding_boxes = method_to_function[args.method]()
     
     # Calculate IoU for each image's attributions and bounding box
-    k = 1000  # or any value you desire
+    k = 256  # or any value you desire
     ious = [calculate_iou(attribution.squeeze(0), bbox.squeeze(0), k) for attribution, bbox in zip(attributions, bounding_boxes)]
     
     # Optionally, print out the IoUs or store them for later analysis
