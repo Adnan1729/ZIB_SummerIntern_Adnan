@@ -23,18 +23,7 @@ I wish to express my profound gratitude to Turan Berkant for his invaluable supe
 ## Getting Started
 
 ### Dependencies
-- Python 3.x
-- PyTorch
-- torchvision
-- pandas
-- h5py
-- numpy
-- matplotlib
-- PIL (Pillow)
-- imblearn
-- scikit-learn
-- wandb (Weights & Biases)
-
+Check the environment.yml file. 
 ### Setup
 N/A (will update later)
 
@@ -53,7 +42,7 @@ The framework has been integrated with Weights & Biases for meticulous experimen
 
 ## Existing Tools
 
-## Key Parameters of Existing Explainable Tools
+### Key Parameters of Existing Explainable Tools
 
 | Method                 | Parameter               | Description                                                                                           |
 |------------------------|-------------------------|-------------------------------------------------------------------------------------------------------|
