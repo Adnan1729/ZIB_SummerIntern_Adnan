@@ -304,6 +304,67 @@ def parse_args():
     return parser.parse_args()
 
 # =========================
+# Visualisation
+# =========================
+
+def mask_to_bbox(mask):
+    """
+    Convert a binary mask to a bounding box.
+    
+    Args:
+    - mask (torch.Tensor): A binary mask tensor of shape (H, W).
+    
+    Returns:
+    - tuple: (x, y, w, h) coordinates of the bounding box.
+    """
+    print("Mask Shape:", mask.shape)
+
+    rows = torch.any(mask, dim=1)
+    cols = torch.any(mask, dim=0)
+    y_min, y_max = torch.where(rows)[0][[0, -1]]
+    x_min, x_max = torch.where(cols)[0][[0, -1]]
+
+    return x_min.item(), y_min.item(), (x_max - x_min).item(), (y_max - y_min).item()
+
+
+def save_attributions_bbox(inputs, attributions, bounding_boxes, save_dir, method_name):
+    #print(bounding_boxes.shape)
+    for i, input in enumerate(inputs):
+        original_img = (input.cpu() - input.cpu().min()) / (input.cpu().max() - input.cpu().min())
+        method_map = (attributions[i].cpu() - attributions[i].cpu().min()) / (attributions[i].cpu().max() - attributions[i].cpu().min())
+
+        # Convert tensors to PIL images for drawing
+        pil_original = transforms.ToPILImage()(original_img)
+        pil_method_map = transforms.ToPILImage()(method_map)
+
+
+        
+        # Draw bounding box on the original image
+        draw = ImageDraw.Draw(pil_original)
+        #print(bounding_boxes[i].shape)
+        bbox = bounding_boxes[i].tolist()  # convert tensor to list
+        #print(bbox)
+        width, height = pil_original.size
+
+
+        
+        # Convert bounding box from normalized to absolute coordinates
+        x, y, w, h = mask_to_bbox(bounding_boxes[i].squeeze(0))
+        if 0 <= x <= 1 and 0 <= y <= 1:  # This checks if the coordinates might be normalized
+            x, y, w, h = x * width, y * height, w * width, h * height
+
+        draw.rectangle([(x, y), (x + w, y + h)], outline="red", width=3)
+
+        # Concatenate and save
+        concatenated_images = torchvision.transforms.ToTensor()(torchvision.transforms.Resize((128, 128))(pil_original))
+        concatenated_maps = torchvision.transforms.ToTensor()(torchvision.transforms.Resize((128, 128))(pil_method_map))
+        final_images = make_grid([concatenated_images, concatenated_maps], nrow=2)
+        save_image(final_images, os.path.join(save_dir, f"{method_name.lower()}_{i}.png"))
+
+
+
+
+# =========================
 # Execution 
 # =========================
 
@@ -345,5 +406,5 @@ if __name__ == "__main__":
     for idx, iou_val in enumerate(ious):
         print(f"Image {idx + 1}: IoU = {iou_val:.4f}")
     
-    save_attributions(inputs, attributions, save_file_path, args.method)
+    save_attributions_bbox(inputs, attributions, bounding_boxes, save_file_path, args.method)
     
