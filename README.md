@@ -86,7 +86,8 @@ The union area is the sum of the areas of the two bounding boxes minus the inter
 
 
 ### Integrated Gradients
-![Alt text describing the image](path_to_the_image)
+![Alt text describing the image](Picture5.png)
+![Alt text describing the image](Picture6.png)
 
 
 
