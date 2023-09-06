@@ -95,8 +95,13 @@ The core difference between the two methods is how they measure overlap:
 ---
 
 ### Integrated Gradients
-![Alt text describing the image](Picture5.png)
-![Alt text describing the image](Picture6.png)
+<p align="center">
+  <img src="Picture5.png" width="45%" alt="Description of Picture5">
+  <img src="Picture6.png" width="45%" alt="Description of Picture6">
+  <br>
+  <i>Common Figure Description</i>
+</p>
+
 
 
 
