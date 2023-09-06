@@ -68,6 +68,8 @@ The framework has been integrated with Weights & Biases for meticulous experimen
 | LRP                    | `rule`                  | Propagation rule, e.g., "Z" or "Z^+". Affects relevance distribution.                                 |
 
 
+### Integrated Gradients
+
 
 
 
