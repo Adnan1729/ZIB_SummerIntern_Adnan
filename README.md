@@ -42,22 +42,31 @@ The framework has been integrated with Weights & Biases for meticulous experimen
 
 ## Existing Tools
 
-### IoU Defitions
+### IoU Definitions
 
-The core difference between the two methods is that the first one looks at pixel-level overlap, while the second one looks at bounding box-level overlap.
+The core difference between the two methods is how they measure overlap: 
+- **IoU_1**: Measures pixel-level overlap.
+- **IoU_2**: Measures bounding box-level overlap.
 
-IoU_1
-A binary mask is created from the heatmap by setting values above a threshold to 1 and the rest to 0.
-Another binary mask is created based on the provided bounding boxes.
-The intersection is calculated by multiplying these two binary masks element-wise. The sum of this result gives the number of overlapping pixels.
-The union is obtained by adding the two binary masks and counting the non-zero pixels.
-IoU is then calculated as the ratio of the intersection to the union.
+---
 
-IoU_2
-A bounding box is extracted from the binary heatmap mask. This box encloses all the "activated" areas of the heatmap.
-IoU is calculated by finding the overlap (intersection) between this bounding box and the ground truth bounding box and then dividing by the combined area of the two bounding boxes (union).
-The intersection's dimensions are found by taking the maximum of the starting x and y coordinates and the minimum of the ending x and y coordinates of the two bounding boxes. The intersection area is the product of its width and height.
-The union area is the sum of the areas of the two bounding boxes minus the intersection area.
+### IoU_1: Pixel-Level Overlap
+
+1. **Binary Mask from Heatmap**: Create a mask where values above a certain threshold are set to 1, and the rest to 0.
+2. **Binary Mask from Bounding Boxes**: Create a mask based on the provided bounding boxes.
+3. **Intersection**: Multiply the two binary masks element-wise. The sum represents the number of overlapping pixels.
+4. **Union**: Add the two binary masks and count the non-zero pixels.
+5. **IoU Calculation**: Compute the ratio of the intersection to the union.
+
+---
+
+### IoU_2: Bounding Box-Level Overlap
+
+1. **Bounding Box from Heatmap**: Extract a box from the binary heatmap mask that encloses all "activated" areas.
+2. **Intersection Calculation**: Determine the overlap between the heatmap's bounding box and the ground truth bounding box. Use the maximum starting x and y coordinates and the minimum ending x and y coordinates of the two bounding boxes to compute the dimensions of the intersection. Then, calculate the area as the product of its width and height.
+3. **Union Calculation**: Find the combined area of the two bounding boxes and subtract the intersection area.
+4. **IoU Calculation**: Compute the ratio of the intersection area to the union area.
+
 
 ### Key Parameters of Existing Explainable Tools
 
