@@ -42,13 +42,13 @@ The framework has been integrated with Weights & Biases for meticulous experimen
 
 ## Existing Tools
 
+---
+
 ### IoU Definitions
 
 The core difference between the two methods is how they measure overlap: 
 - **IoU_1**: Measures pixel-level overlap.
 - **IoU_2**: Measures bounding box-level overlap.
-
----
 
 ### IoU_1: Pixel-Level Overlap
 
@@ -58,8 +58,6 @@ The core difference between the two methods is how they measure overlap:
 4. **Union**: Add the two binary masks and count the non-zero pixels.
 5. **IoU Calculation**: Compute the ratio of the intersection to the union.
 
----
-
 ### IoU_2: Bounding Box-Level Overlap
 
 1. **Bounding Box from Heatmap**: Extract a box from the binary heatmap mask that encloses all "activated" areas.
@@ -67,6 +65,7 @@ The core difference between the two methods is how they measure overlap:
 3. **Union Calculation**: Find the combined area of the two bounding boxes and subtract the intersection area.
 4. **IoU Calculation**: Compute the ratio of the intersection area to the union area.
 
+---
 
 ### Key Parameters of Existing Explainable Tools
 
@@ -93,6 +92,7 @@ The core difference between the two methods is how they measure overlap:
 |                        | `baselines`             | Baseline samples for comparison.                                                                       |
 | LRP                    | `rule`                  | Propagation rule, e.g., "Z" or "Z^+". Affects relevance distribution.                                 |
 
+---
 
 ### Integrated Gradients
 ![Alt text describing the image](Picture5.png)
